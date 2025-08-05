@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Cost Estimator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e3f0ff 0%, #f5f8fa 100%);
+      margin: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 480px;
+      margin: 48px auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(44, 62, 80, 0.12);
+      padding: 32px 28px 28px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 28px;
+      color: #234;
+      font-size: 2em;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .price-table {
+      margin-bottom: 24px;
+      background: #eaf2fb;
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+    }
+    .price-table th, .price-table td {
+      padding: 8px 16px;
+      font-size: 1em;
+      color: #234;
+    }
+    .price-table th {
+      background: #d6e6fa;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .input-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 12px;
+      padding: 6px 0;
+    }
+    .input-row label {
+      flex: 1;
+      color: #234;
+      font-weight: 500;
+      font-size: 1.05em;
+    }
+    .input-row input[type="number"] {
+      width: 90px;
+      padding: 7px;
+      border: 1px solid #bcd;
+      border-radius: 6px;
+      background: #f7fafd;
+      font-size: 1em;
+      transition: border-color 0.2s;
+    }
+    .input-row input[type="number"]:focus {
+      border-color: #4fc3f7;
+      outline: none;
+    }
+    .input-row input[type="range"] {
+      flex: 2;
+      accent-color: #4fc3f7;
+      height: 4px;
+      background: #eaf2fb;
+      border-radius: 4px;
+    }
+    .input-row span {
+      color: #888;
+      font-size: 0.95em;
+      margin-left: 6px;
+    }
+    .reset-btn {
+      display: block;
+      margin: 20px auto 0 auto;
+      background: rgb(107, 107, 107);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 28px;
+      font-size: 1.08em;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+      transition: background 0.2s;
+    }
+    .reset-btn:hover {
+      background: rgb(94, 94, 94)
+    }
+    .result {
+      background: #eafbe7;
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 18px;
+      font-size: 1.13em;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+    }
+    .breakdown {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 10px;
+    }
+    .breakdown-item {
+      flex: 1;
+      background: #f7fafd;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      font-size: 1.05em;
+      color: #234;
+      box-shadow: 0 1px 4px rgba(44,62,80,0.03);
+    }
+    .total {
+      text-align: center;
+      font-size: 1.25em;
+      font-weight: bold;
+      color: #234;
+      margin-top: 10px;
+      letter-spacing: 1px;
+    }
+    #projection {
+      text-align: center;
+      margin-top: 10px;
+      color: #234;
+      font-size: 1.05em;
+      background: #eaf2fb;
+      border-radius: 6px;
+      padding: 8px;
+      box-shadow: 0 1px 4px rgba(44,62,80,0.03);
+    }
+    .chart-container {
+      margin-top: 24px;
+      background: #eaf2fb;
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+    }
+    @media (max-width: 600px) {
+      .container { max-width: 98vw; padding: 14px 2vw; }
+      h2 { font-size: 1.3em; }
+      .chart-container { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Firebase Cost Estimator</h2>
+    <div class="price-table">
+      <table>
+        <tr><th>Operation</th><th>Price per 100,000</th></tr>
+        <tr><td>Read</td><td>$0.06</td></tr>
+        <tr><td>Write</td><td>$0.18</td></tr>
+        <tr><td>Delete</td><td>$0.02</td></tr>
+      </table>
+    </div>
+    <form id="estimator-form" autocomplete="off">
+      <div class="input-row">
+        <label for="reads">Reads</label>
+        <input type="number" id="reads" min="0" max="1000000" value="0" step="1000">
+        <input type="range" id="reads-range" min="0" max="1000000" value="0" step="1000" title="Set number of Reads" placeholder="Reads">
+      </div>
+      <div class="input-row">
+        <label for="writes">Writes</label>
+        <input type="number" id="writes" min="0" max="1000000" value="0" step="1000">
+        <input type="range" id="writes-range" min="0" max="1000000" value="0" step="1000" title="Set number of Writes" placeholder="Writes">
+      </div>
+      <div class="input-row">
+        <label for="deletes">Deletes</label>
+        <input type="number" id="deletes" min="0" max="1000000" value="0" step="1000">
+        <input type="range" id="deletes-range" min="0" max="1000000" value="0" step="1000" title="Set number of Deletes" placeholder="Deletes">
+      </div>
+      <div class="input-row">
+        <label for="reads-per-day">Avg Reads/Day</label>
+        <input type="number" id="reads-per-day" min="0" max="1000000" value="0" step="100">
+        <span>(projects monthly)</span>
+      </div>
+      <button type="button" class="reset-btn" id="resetBtn">Reset</button>
+    </form>
+    <div class="result" id="result">
+      <div class="breakdown">
+        <div class="breakdown-item" id="read-cost">Reads: $0.00</div>
+        <div class="breakdown-item" id="write-cost">Writes: $0.00</div>
+        <div class="breakdown-item" id="delete-cost">Deletes: $0.00</div>
+      </div>
+      <div class="total" id="total-cost">Total: $0.00</div>
+      <div id="projection"></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="usageChart" height="120"></canvas>
+    </div>
+  </div>
+  <script>
+    // Pricing per 100,000 operations
+    const PRICES = { reads: 0.06, writes: 0.18, deletes: 0.02 };
+
+    // Elements
+    const readsInput = document.getElementById('reads');
+    const writesInput = document.getElementById('writes');
+    const deletesInput = document.getElementById('deletes');
+    const readsRange = document.getElementById('reads-range');
+    const writesRange = document.getElementById('writes-range');
+    const deletesRange = document.getElementById('deletes-range');
+    const readsPerDayInput = document.getElementById('reads-per-day');
+    const readCostDiv = document.getElementById('read-cost');
+    const writeCostDiv = document.getElementById('write-cost');
+    const deleteCostDiv = document.getElementById('delete-cost');
+    const totalCostDiv = document.getElementById('total-cost');
+    const projectionDiv = document.getElementById('projection');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Chart.js setup
+    const ctx = document.getElementById('usageChart').getContext('2d');
+    const usageChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Reads', 'Writes', 'Deletes'],
+        datasets: [{
+          data: [0, 0, 0],
+          backgroundColor: ['#4fc3f7', '#ffb74d', '#e57373'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        plugins: { legend: { display: true, position: 'bottom' } },
+        cutout: '70%',
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    function estimateCost(reads, writes, deletes) {
+      const readCost = (reads / 100000) * PRICES.reads;
+      const writeCost = (writes / 100000) * PRICES.writes;
+      const deleteCost = (deletes / 100000) * PRICES.deletes;
+      const total = readCost + writeCost + deleteCost;
+      return { readCost, writeCost, deleteCost, total };
+    }
+
+    function updateEstimate() {
+      const reads = parseInt(readsInput.value) || 0;
+      const writes = parseInt(writesInput.value) || 0;
+      const deletes = parseInt(deletesInput.value) || 0;
+      const readsPerDay = parseInt(readsPerDayInput.value) || 0;
+      const projectedReads = readsPerDay * 30;
+      const readsToUse = projectedReads > 0 ? projectedReads : reads;
+
+      const { readCost, writeCost, deleteCost, total } = estimateCost(readsToUse, writes, deletes);
+
+      readCostDiv.textContent = `Reads: $${readCost.toFixed(2)}`;
+      writeCostDiv.textContent = `Writes: $${writeCost.toFixed(2)}`;
+      deleteCostDiv.textContent = `Deletes: $${deleteCost.toFixed(2)}`;
+      totalCostDiv.textContent = `Total: $${total.toFixed(2)}`;
+
+      usageChart.data.datasets[0].data = [readsToUse, writes, deletes];
+      usageChart.update();
+
+      if (readsPerDay > 0) {
+        projectionDiv.innerHTML = `Projected Monthly Reads: <b>${projectedReads.toLocaleString()}</b><br>
+          Projected Read Cost: <b>$${(projectedReads / 100000 * PRICES.reads).toFixed(2)}</b>`;
+      } else {
+        projectionDiv.innerHTML = '';
+      }
+    }
+
+    function syncInputs(input, range) {
+      input.addEventListener('input', () => {
+        range.value = input.value;
+        updateEstimate();
+      });
+      range.addEventListener('input', () => {
+        input.value = range.value;
+        updateEstimate();
+      });
+    }
+    syncInputs(readsInput, readsRange);
+    syncInputs(writesInput, writesRange);
+    syncInputs(deletesInput, deletesRange);
+
+    resetBtn.addEventListener('click', () => {
+      readsInput.value = 0;
+      writesInput.value = 0;
+      deletesInput.value = 0;
+      readsRange.value = 0;
+      writesRange.value = 0;
+      deletesRange.value = 0;
+      readsPerDayInput.value = 0;
+      updateEstimate();
+    });
+
+    readsPerDayInput.addEventListener('input', updateEstimate);
+
+    updateEstimate();
+  </script>
+</body>
+</html>
